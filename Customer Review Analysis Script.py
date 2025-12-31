@@ -1,14 +1,3 @@
-#!/usr/bin/env python
-# coding: utf-8
-
-# In[2]:
-
-
-get_ipython().system('pip install tensorflow')
-
-
-# In[1]:
-
 
 import numpy as np
 import pandas as pd
@@ -30,8 +19,6 @@ import zipfile
 import os
 
 
-# In[4]:
-
 
 with zipfile.ZipFile('archive.zip', 'r') as zip_ref:
     zip_ref.extractall('extracted_files')
@@ -44,14 +31,9 @@ for root, dirs, files_list in os.walk('extracted_files'):
         print(os.path.join(root, file))
 
 
-# In[5]:
-
 
 review_data = pd.read_csv("extracted_files/Reviews.csv")
 print(review_data.head)
-
-
-# In[5]:
 
 
 #Inspect the data
@@ -61,10 +43,6 @@ print(review_data.info())
 print("\nScore Distribution")
 print(review_data['Score'].value_counts().sort_index())
 print(f"\nAverage review length: {review_data['Text'].str.len().mean():.0f} characters")
-
-
-# In[19]:
-
 
 print("\nScore Distribution:")
 print(review_data['Score'].value_counts().sort_index())
@@ -99,9 +77,6 @@ plt.grid(axis='y', linestyle='--', alpha=0.5)
 plt.show()
 
 
-# In[7]:
-
-
 #Data cleaning
 def clean_text(text):
     if pd.isna(text):
@@ -121,9 +96,6 @@ df_selected = review_data[['Score', 'Combined_Text']].copy()
 print(df_selected.info())
 
 
-# In[8]:
-
-
 #Score Classificaiton 
 review_data['Sentiment_Binary'] = (review_data['Score'] >= 4).astype(int) #Binary Classification (0-1)
 review_data['Score_Class'] = review_data['Score'] - 1  #Multi-class Classification (0-4) 
@@ -136,9 +108,6 @@ else:
     num_classes = 5
 
 print(review_data['Score_Class'].value_counts())
-
-
-# In[11]:
 
 
 #Tokenization
@@ -160,19 +129,12 @@ print(f"Vocabulary size: {len(tokenizer.word_index) + 1}")
 print(f"Shape of X: {X.shape}")
 
 
-# In[12]:
-
-
 #Spit training, validation and testing sets
 X_train, X_tv, y_train, y_tv = train_test_split(X, labels, test_size=0.2, random_state=42, stratify=labels)
 X_val, X_test, y_val, y_test = train_test_split(X_tv, y_tv, test_size = 0.5, random_state=42, stratify=y_tv)
 print(f"\nTrain set: {X_train.shape[0]} samples")
 print(f"Validation set: {X_val.shape[0]} samples")
 print(f"Test set: {X_test.shape[0]} samples")
-
-
-# In[13]:
-
 
 #Model 1: Baseline CNN for text classification
 def create_cnn_model(max_words=10000, max_len=100, embedding_dim=128, num_classes=2):
@@ -243,9 +205,6 @@ def create_bilstm_model(max_words=10000, max_len=100, embedding_dim=128, num_cla
     return model
 
 
-# In[14]:
-
-
 #Multi-class focal loss
 def focal_loss(gamma=2., alpha=0.25, num_classes=5):
     def loss_fn(y_true, y_pred):
@@ -265,9 +224,6 @@ def binary_focal_loss(gamma=2., alpha=0.25):
         loss = -alpha * y_true * tf.pow(1 - y_pred, gamma) * tf.math.log(y_pred)                - (1 - alpha) * (1 - y_true) * tf.pow(y_pred, gamma) * tf.math.log(1 - y_pred)
         return tf.reduce_mean(loss)
     return loss_fn
-
-
-# In[15]:
 
 
 def compile_and_train(model, X_train, y_train, X_val, y_val, 
@@ -297,10 +253,6 @@ def compile_and_train(model, X_train, y_train, X_val, y_val,
         verbose=1)
     return history
 
-
-# In[16]:
-
-
 model1 = create_cnn_model(MAX_WORDS, MAX_LEN, EMBEDDING_DIM, num_classes)
 model2 = create_lstm_model(MAX_WORDS, MAX_LEN, EMBEDDING_DIM, num_classes)
 model3 = create_bilstm_model(MAX_WORDS, MAX_LEN, EMBEDDING_DIM, num_classes)
@@ -315,9 +267,6 @@ class_weights = dict(zip(classes, weights))
 print("Class weights:", class_weights)
 
 
-# In[17]:
-
-
 #Train CNN model
 history_cnn = compile_and_train(
     model1, 
@@ -328,9 +277,6 @@ history_cnn = compile_and_train(
     batch_size=256,
     class_weight = class_weights
 )
-
-
-# In[16]:
 
 
 #Evaluate the CNN model on test set
@@ -356,9 +302,6 @@ print("\nConfusion Matrix:")
 print(confusion_matrix(y_test, y_pred_cnn))
 
 
-# In[17]:
-
-
 #Train LSTM model
 history_lstm = compile_and_train(
     model2, 
@@ -369,10 +312,6 @@ history_lstm = compile_and_train(
     batch_size=256,
     class_weight = class_weights
 )
-
-
-# In[18]:
-
 
 #Evaluate LSTM model on test set
 test_loss_lstm, test_acc_lstm  = model2.evaluate(X_test, y_test, verbose=0)
@@ -395,9 +334,6 @@ print("\nConfusion Matrix:")
 print(confusion_matrix(y_test, y_pred_lstm))
 
 
-# In[19]:
-
-
 #Train BiLSTM model
 history_bilstm = compile_and_train(
     model3, 
@@ -407,9 +343,6 @@ history_bilstm = compile_and_train(
     epochs=10,
     batch_size=256
 )
-
-
-# In[25]:
 
 
 #Evalutate BiLSTM model on test set
@@ -434,9 +367,6 @@ print("\nConfusion Matrix:")
 print(confusion_matrix(y_test, y_pred_bilstm))
 
 
-# In[9]:
-
-
 f1_mc_cnn =     [0.76, 0.38, 0.54, 0.42, 0.91]
 f1_mc_lstm =    [0.76, 0.30, 0.51, 0.46, 0.91]
 f1_mc_bilstm =  [0.75, 0.39, 0.50, 0.38, 0.91]
@@ -459,9 +389,6 @@ plt.tight_layout()
 plt.show()
 
 
-# In[8]:
-
-
 f1_bc_cnn =     [0.88, 0.97]
 f1_bc_lstm =    [0.86, 0.97]
 f1_bc_bilstm =  [0.91, 0.96]
@@ -481,9 +408,6 @@ plt.title("F1-score Comparison Across Models (Binary Classification)")
 plt.legend()
 plt.tight_layout()
 plt.show()
-
-
-# In[ ]:
 
 
 
